@@ -1,0 +1,343 @@
+{
+  "seed": 20260720,
+  "results": [
+    {
+      "scenario": "A_mobile_contact_regression",
+      "question": "Why did mobile contact conversion decline in Riyadh?",
+      "expected": "technical_regression",
+      "segment": {
+        "market": "Riyadh",
+        "device": "mobile_web"
+      },
+      "detected": true,
+      "explained": true,
+      "explanation_fully_supported": true,
+      "engine_answer": {
+        "filters": {
+          "market": [
+            "Riyadh"
+          ],
+          "device": [
+            "mobile_web"
+          ]
+        },
+        "leading": "technical_regression",
+        "status": "supported"
+      },
+      "all_scopes": [
+        {
+          "filters": {
+            "market": [
+              "Riyadh"
+            ],
+            "device": [
+              "mobile_web"
+            ]
+          },
+          "leading": "technical_regression",
+          "status": "supported"
+        }
+      ],
+      "confidence": "high"
+    },
+    {
+      "scenario": "A_mobile_contact_regression (unprompted)",
+      "question": "Which funnel step has the largest recoverable opportunity?",
+      "expected": "technical_regression",
+      "segment": {
+        "market": "Riyadh",
+        "device": "mobile_web"
+      },
+      "detected": true,
+      "explained": true,
+      "explanation_fully_supported": true,
+      "engine_answer": {
+        "filters": {
+          "market": [
+            "Riyadh"
+          ],
+          "device": [
+            "mobile_web"
+          ]
+        },
+        "leading": "technical_regression",
+        "status": "supported"
+      },
+      "all_scopes": [
+        {
+          "filters": {
+            "market": [
+              "Riyadh"
+            ],
+            "device": [
+              "mobile_web"
+            ]
+          },
+          "leading": "technical_regression",
+          "status": "supported"
+        }
+      ],
+      "confidence": "high"
+    },
+    {
+      "scenario": "B_channel_mix_shift",
+      "question": "Is the overall conversion decline real, or is the traffic mix changing?",
+      "expected": "traffic_composition",
+      "segment": null,
+      "detected": true,
+      "explained": true,
+      "explanation_fully_supported": true,
+      "engine_answer": {
+        "filters": {},
+        "leading": "traffic_composition",
+        "status": "supported"
+      },
+      "all_scopes": [
+        {
+          "filters": {},
+          "leading": "traffic_composition",
+          "status": "supported"
+        }
+      ],
+      "confidence": "high"
+    },
+    {
+      "scenario": "C_app_selection_effect",
+      "question": "Why does the app convert better than the website?",
+      "expected": "selection_effect",
+      "segment": {
+        "device": "app"
+      },
+      "detected": true,
+      "explained": true,
+      "explanation_fully_supported": true,
+      "engine_answer": {
+        "filters": {
+          "device": [
+            "app"
+          ]
+        },
+        "leading": "selection_effect",
+        "status": "supported"
+      },
+      "all_scopes": [
+        {
+          "filters": {
+            "device": [
+              "app"
+            ]
+          },
+          "leading": "selection_effect",
+          "status": "supported"
+        }
+      ],
+      "confidence": "high"
+    },
+    {
+      "scenario": "D_jeddah_app_tracking (unprompted)",
+      "question": "Are users abandoning the contact flow, or is tracking broken?",
+      "expected": "instrumentation_issue",
+      "segment": {
+        "market": "Jeddah",
+        "device": "app"
+      },
+      "detected": true,
+      "explained": true,
+      "explanation_fully_supported": true,
+      "engine_answer": {
+        "filters": {
+          "market": [
+            "Jeddah"
+          ],
+          "device": [
+            "app"
+          ]
+        },
+        "leading": "instrumentation_issue",
+        "status": "supported"
+      },
+      "all_scopes": [
+        {
+          "filters": {
+            "market": [
+              "Riyadh"
+            ],
+            "device": [
+              "mobile_web"
+            ]
+          },
+          "leading": "technical_regression",
+          "status": "supported"
+        },
+        {
+          "filters": {
+            "market": [
+              "Jeddah"
+            ],
+            "device": [
+              "app"
+            ]
+          },
+          "leading": "instrumentation_issue",
+          "status": "supported"
+        }
+      ],
+      "confidence": "high"
+    },
+    {
+      "scenario": "E_dubai_luxury_behaviour",
+      "question": "Why did contact starts fall for luxury listings in Dubai?",
+      "expected": "behavioral_change",
+      "segment": {
+        "market": "Dubai",
+        "price_band": "luxury"
+      },
+      "detected": true,
+      "explained": true,
+      "explanation_fully_supported": true,
+      "engine_answer": {
+        "filters": {
+          "market": [
+            "Dubai"
+          ],
+          "price_band": [
+            "luxury"
+          ]
+        },
+        "leading": "behavioral_change",
+        "status": "supported"
+      },
+      "all_scopes": [
+        {
+          "filters": {
+            "market": [
+              "Dubai"
+            ],
+            "price_band": [
+              "luxury"
+            ]
+          },
+          "leading": "behavioral_change",
+          "status": "supported"
+        }
+      ],
+      "confidence": "high"
+    },
+    {
+      "scenario": "E_dubai_luxury_behaviour (unprompted)",
+      "question": "Which segments show a genuine change in behaviour?",
+      "expected": "behavioral_change",
+      "segment": {
+        "market": "Dubai",
+        "price_band": "luxury"
+      },
+      "detected": true,
+      "explained": true,
+      "explanation_fully_supported": true,
+      "engine_answer": {
+        "filters": {
+          "market": [
+            "Dubai"
+          ],
+          "price_band": [
+            "luxury"
+          ]
+        },
+        "leading": "behavioral_change",
+        "status": "supported"
+      },
+      "all_scopes": [
+        {
+          "filters": {
+            "market": [
+              "Dubai"
+            ],
+            "price_band": [
+              "luxury"
+            ]
+          },
+          "leading": "behavioral_change",
+          "status": "supported"
+        },
+        {
+          "filters": {
+            "market": [
+              "Riyadh"
+            ],
+            "device": [
+              "mobile_web"
+            ]
+          },
+          "leading": "technical_regression",
+          "status": "supported"
+        },
+        {
+          "filters": {
+            "property_type": [
+              "townhouse"
+            ],
+            "price_band": [
+              "luxury"
+            ]
+          },
+          "leading": "behavioral_change",
+          "status": "supported"
+        },
+        {
+          "filters": {
+            "market": [
+              "Abu Dhabi"
+            ],
+            "device": [
+              "mobile_web"
+            ]
+          },
+          "leading": "behavioral_change",
+          "status": "supported"
+        }
+      ],
+      "confidence": "high"
+    }
+  ],
+  "negative_controls": [
+    {
+      "question": "Why did contact conversion change in Abu Dhabi on desktop?",
+      "leading": "random_variation",
+      "status": "partially_supported",
+      "false_alarm": false,
+      "false_alarm_categories": []
+    },
+    {
+      "question": "Why did contact conversion change in Cairo?",
+      "leading": "traffic_composition",
+      "status": "supported",
+      "false_alarm": false,
+      "false_alarm_categories": []
+    }
+  ],
+  "unprompted_scan": {
+    "flagged_in": {
+      "A_mobile_contact_regression": [
+        "contact_start_to_submit",
+        "listing_to_contact (watchlist)"
+      ],
+      "E_dubai_luxury_behaviour": [
+        "listing_to_contact_start"
+      ],
+      "D_jeddah_app_tracking": [
+        "listing_to_contact_raw (watchlist)"
+      ]
+    },
+    "n_flagged": {
+      "listing_to_contact_start": 1,
+      "listing_to_contact_start (watchlist)": 6,
+      "contact_start_to_submit": 1,
+      "contact_start_to_submit (watchlist)": 0,
+      "listing_to_contact": 0,
+      "listing_to_contact (watchlist)": 7,
+      "listing_to_contact_raw": 0,
+      "listing_to_contact_raw (watchlist)": 6
+    }
+  },
+  "duration_s": 11.5
+}

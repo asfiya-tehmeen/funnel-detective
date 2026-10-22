@@ -1,0 +1,13 @@
+# Python
+backend/.venv/
+__pycache__/
+.pytest_cache/
+backend/var/
+# Generated data (regenerate with: python -m scripts.generate_data)
+backend/data/
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/tsconfig.tsbuildinfo
+# Env
+.env

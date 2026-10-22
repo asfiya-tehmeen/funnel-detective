@@ -1,0 +1,18 @@
+seed 1: 7/7 explained, controls ok
+seed 2: 7/7 explained, controls ok
+seed 3: 7/7 explained, controls ok
+seed 4: 7/7 explained, controls ok
+seed 5: 6/7 explained, controls ok
+seed 6: 6/7 explained, controls ok
+seed 7: 7/7 explained, controls ok
+seed 8: 7/7 explained, controls ok
+
+Per-scenario success across 8 seeds
+  A_mobile_contact_regression                   8/8
+  A_mobile_contact_regression (unprompted)      8/8
+  B_channel_mix_shift                           8/8
+  C_app_selection_effect                        8/8
+  D_jeddah_app_tracking (unprompted)            8/8
+  E_dubai_luxury_behaviour                      8/8
+  E_dubai_luxury_behaviour (unprompted)         6/8
+  negative controls without false alarms        8/8

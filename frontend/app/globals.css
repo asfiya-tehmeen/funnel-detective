@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens (RGB triplets so Tailwind can apply alpha). Light is the default. */
+:root {
+  color-scheme: light;
+  --surface: 250 250 248;
+  --raised: 255 255 255;
+  --sunken: 243 242 239;
+  --line: 228 226 221;
+  --ink: 22 22 21;
+  --ink-2: 82 81 78;
+  --ink-3: 128 126 120;
+  --accent: 42 120 214;        /* series-1 blue */
+  --accent-soft: 230 239 251;
+  --good: 12 133 12;
+  --warn: 176 112 0;
+  --bad: 208 59 59;
+  /* chart roles */
+  --chart-current: #2a78d6;
+  --chart-baseline: #a3a19b;
+  --chart-grid: #e8e6e1;
+  --chart-axis: #807e78;
+  --chart-neg: #d03b3b;
+  --chart-pos: #2a78d6;
+  --chart-s2: #eb6834;
+  --chart-s3: #1baf7a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface: 21 21 20;
+    --raised: 30 30 29;
+    --sunken: 26 26 25;
+    --line: 52 52 49;
+    --ink: 240 239 236;
+    --ink-2: 195 194 183;
+    --ink-3: 150 148 140;
+    --accent: 57 135 229;
+    --accent-soft: 28 44 66;
+    --good: 52 180 52;
+    --warn: 230 170 40;
+    --bad: 230 103 103;
+    --chart-current: #3987e5;
+    --chart-baseline: #6f6d67;
+    --chart-grid: #2e2e2b;
+    --chart-axis: #969489;
+    --chart-neg: #e66767;
+    --chart-pos: #3987e5;
+    --chart-s2: #d95926;
+    --chart-s3: #199e70;
+  }
+}
+
+html, body { background: rgb(var(--surface)); color: rgb(var(--ink)); }
+body { font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; }
+
+.num { font-variant-numeric: tabular-nums; }
+.sql { font-family: var(--font-mono), ui-monospace, monospace; font-size: 12px; line-height: 1.55; }
+
+/* Recharts tooltip reset */
+.recharts-tooltip-wrapper { outline: none; }
+
+:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; border-radius: 4px; }

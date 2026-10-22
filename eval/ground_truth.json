@@ -1,0 +1,76 @@
+{
+  "seed": 20260720,
+  "data_window": [
+    "2026-05-25",
+    "2026-08-16"
+  ],
+  "change_date": "2026-07-20",
+  "scenarios": {
+    "A_mobile_contact_regression": {
+      "description": "Contact-form submission regression on mobile web in Riyadh from the web-2026.07.2 release.",
+      "segment": {
+        "market": "Riyadh",
+        "device": "mobile_web"
+      },
+      "start_date": "2026-07-20",
+      "mechanism": "contact_started -> contact_submitted probability multiplied by 0.55; 45% of lost submits emit a failed event.",
+      "expected": {
+        "hypothesis": "technical_regression",
+        "step": "contact_start_to_submit"
+      }
+    },
+    "B_channel_mix_shift": {
+      "description": "Paid-social volume surges after the change date. Paid social converts poorly, so aggregate listing-to-contact falls although within-channel rates are stable.",
+      "start_date": "2026-07-20",
+      "mechanism": "paid_social traffic weight multiplied by 3.4 (5-day ramp).",
+      "expected": {
+        "hypothesis": "traffic_composition",
+        "dimension": "channel"
+      }
+    },
+    "C_app_selection_effect": {
+      "description": "App sessions look far better at listing-to-contact, mostly because app users are overwhelmingly returning visitors (who convert ~1.75x better).",
+      "segment": {
+        "device": "app"
+      },
+      "mechanism": "device multiplier for app is only 1.04 vs desktop 1.0; returning multiplier 1.75.",
+      "expected": {
+        "hypothesis": "selection_effect",
+        "confounder": "visitor_type"
+      }
+    },
+    "D_jeddah_app_tracking": {
+      "description": "Staged app-5.12.0 rollout in Jeddah double-fires contact_submitted (without a lead_id) on contact start and on some listing renders. Raw contact counts jump; real leads do not.",
+      "segment": {
+        "market": "Jeddah",
+        "device": "app"
+      },
+      "start_date": "2026-07-27",
+      "mechanism": "ghost contact_submitted events with null lead_id; some without a preceding contact_started.",
+      "expected": {
+        "hypothesis": "instrumentation_issue"
+      }
+    },
+    "E_dubai_luxury_behaviour": {
+      "description": "Dubai luxury-band users start ~38% fewer contacts while saving more, across all devices and channels \u2014 a genuine behavioural change, not a regression.",
+      "segment": {
+        "market": "Dubai",
+        "price_band": "luxury"
+      },
+      "start_date": "2026-07-20",
+      "mechanism": "contact-start multiplier 0.55, save multiplier 1.4.",
+      "expected": {
+        "hypothesis": "behavioral_change",
+        "step": "listing_to_contact_start"
+      }
+    },
+    "EXP_014": {
+      "description": "Historical randomized experiment: sticky contact CTA in Dubai and Abu Dhabi.",
+      "window": [
+        "2026-05-25",
+        "2026-06-21"
+      ],
+      "true_relative_lift_contact_start": 0.07
+    }
+  }
+}

@@ -1,0 +1,17 @@
+# One-command local run: docker compose up --build  ->  http://localhost:3000
+services:
+  backend:
+    build: ./backend
+    environment:
+      - FD_CORS_ORIGINS=http://localhost:3000
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    ports: ["8000:8000"]
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:8000
+    environment:
+      - BACKEND_URL=http://backend:8000
+    ports: ["3000:3000"]
+    depends_on: [backend]
