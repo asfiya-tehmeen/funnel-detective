@@ -23,7 +23,10 @@ STATUS_RULE = ("supported: ≥2 supporting checks and none contradicting · part
                "least as many supporting as contradicting · not supported: more contradicting than supporting, or "
                "only contradicting · inconclusive: no decisive checks. Status summarises rule-based checks; it is "
                "not a probability. Explanations with support are ordered by the share of the change they can account "
-               "for, because several can be true at once.")
+               "for, because several can be true at once. A behavioural-change explanation also needs its decisive "
+               "check to support it (a significant within-channel change in contact starts while form completion is "
+               "steady, or in the metric itself); the other checks, such as 'no technical signal' and 'broad-based', "
+               "hold for almost any generic decline, so without the decisive check it is capped at partially supported.")
 STATUS_ORDER = {"supported": 0, "partially_supported": 1, "inconclusive": 2, "not_supported": 3}
 CONTACT_FAMILY = {"listing_to_contact", "listing_to_contact_start", "contact_start_to_submit",
                   "qualified_contact_rate", "listing_to_contact_raw"}
@@ -43,10 +46,17 @@ def _status(checks: list[Check]) -> str:
 
 def _hyp(hid: str, category: str, title: str, predicted: str, checks: list[Check], discriminating: list[str],
          level: str, comparisons: list[dict[str, Any]] | None = None, share: float | None = None,
-         share_basis: str | None = None) -> Hypothesis:
+         share_basis: str | None = None, decisive_ok: bool | None = None, decisive_desc: str = "") -> Hypothesis:
+    """`decisive_ok=False` caps an otherwise 'supported' status at 'partially_supported' (None = no such rule)."""
+    status = _status(checks)
+    if decisive_ok is False and status == "supported":
+        status = "partially_supported"
+        checks = checks + [Check(description="Decisive check", result="neutral",
+                                 detail=f"{decisive_desc} did not support this explanation, so its status is capped at "
+                                        "partially supported; the remaining checks are not specific to it.")]
     return Hypothesis(id=hid, category=category, title=title, predicted_pattern=predicted, checks=checks,
                       segment_comparisons=comparisons or [], discriminating_data=discriminating,
-                      evidence_level=level, status=_status(checks), status_rule=STATUS_RULE,
+                      evidence_level=level, status=status, status_rule=STATUS_RULE,
                       explained_share=None if share is None else max(0.0, min(1.0, share)),
                       explained_share_basis=share_basis)
 
@@ -65,7 +75,14 @@ def _sign_share(rows: list[dict[str, Any]], key: str, direction: float) -> tuple
     return same, len(tested)
 
 
-def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Comparison) -> tuple[list[Hypothesis], dict[str, Any]]:
+def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Comparison,
+                n_comparisons: int = 1) -> tuple[list[Hypothesis], dict[str, Any]]:
+    """Evaluate the five competing explanations for a change in `metric` within `filters`.
+
+    `n_comparisons` is how many comparable segments/steps were examined to arrive at this one
+    (e.g. the size of a segment scan). The change's p-value is Bonferroni-corrected for
+    max(siblings implied by the filters, n_comparisons) before any explanation can be 'supported'.
+    """
     by = "hypothesis_battery"
     base = {"filters": filters, "comparison": comparison}
     target = run_tool(ctx, "compare_metric", {"metric": metric, **base}, by)
@@ -95,6 +112,22 @@ def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Com
     cp = run_tool(ctx, "change_point", {"metric": focus_step, "filters": filters, "window": full}, by)
 
     fixed = _fixed_dims(filters)
+    n_siblings = 1
+    for d_ in fixed:
+        n_siblings *= len(DIMENSIONS[d_])
+    m_comp = max(n_siblings, n_comparisons)
+    p_raw = T["p_value"]
+    p_corr = min(1.0, p_raw * m_comp)
+    # Explanations of a change presuppose a real change. If it does not survive correction for the
+    # comparisons made, it contradicts H1-H3 (which blocks 'supported'); H4 is exempt because
+    # tracking faults are an anomaly in the data itself, not in the target metric.
+    credibility_check = None
+    if p_corr >= 0.05:
+        credibility_check = Check(
+            description="Is the change itself credible after correcting for the number of comparisons made?",
+            result="contradicts", evidence_ids=[target.evidence[0].id],
+            detail=f"p={pval(p_raw)} × {m_comp} comparisons = {pval(p_corr)} (≥ 0.05), so the change may be noise "
+                   "and there may be nothing to explain.")
     free_dims = [d for d in ("channel", "device", "visitor_type", "market", "price_band") if d not in fixed]
     mixes = {d: run_tool(ctx, "mix_decomposition", {"metric": metric, "dimension": d, **base}, by) for d in free_dims}
     siblings = {}
@@ -232,6 +265,8 @@ def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Com
             res, det = "neutral", "No new client version appeared in the current window."
         checks.append(Check(description="Does the timing coincide with a release?", result=res,
                             evidence_ids=_ids(versions), detail=det))
+    if credibility_check:
+        checks.append(credibility_check)
     hyps.append(_hyp("H1", "technical_regression", f"UI or technical regression affecting {scope}",
                      "An abrupt drop starting on a specific date, concentrated in one step (usually form completion) "
                      "and one platform, with more failed submissions and alignment with a release.",
@@ -272,6 +307,8 @@ def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Com
                             result=res, evidence_ids=_ids(target),
                             detail=f"Channel-standardised change {pp(adj_target['adj_change_pp'], 2)} "
                                    f"(p={pval(p_adj)}) vs raw {pp(direction, 2)}."))
+    if credibility_check:
+        checks.append(credibility_check)
     hyps.append(_hyp("H2", "traffic_composition", f"Traffic-mix shift (not a behaviour change) in {scope}",
                      "Segment shares change (e.g. more low-intent paid-social traffic) while rates within each segment "
                      "stay flat; a mix decomposition attributes most of the change to the mix effect.",
@@ -288,6 +325,8 @@ def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Com
     # ---------------- H3 behavioural change ----------------
     checks = []
     start_share = None
+    decisive_ok: bool | None = None
+    decisive_desc = ""
     if contact_family and start and submit and start["channel_adjusted"] and submit["channel_adjusted"]:
         st, sa = start["channel_adjusted"], submit["channel_adjusted"]
         if direction != 0 and (st["adj_change_pp"] < 0) == (direction < 0):
@@ -301,6 +340,8 @@ def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Com
             res = "contradicts"
         else:
             res = "neutral"
+        decisive_ok = res == "supports"
+        decisive_desc = "The change in contact starts within channel while form completion held steady"
         checks.append(Check(description="Did intent to contact (listing → contact start) change while form "
                                         "completion held steady?", result=res, evidence_ids=steps_ids,
                             detail=f"Contact starts {pp(st['adj_change_pp'])} within-channel (p={pval(st['adj_p_value'])}); "
@@ -327,6 +368,12 @@ def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Com
                             evidence_ids=steps_ids,
                             detail=f"Save rate {pp(sv['channel_adjusted']['adj_change_pp'])} within-channel "
                                    f"(p={pval(sv['channel_adjusted']['adj_p_value'])})."))
+    if credibility_check:
+        checks.append(credibility_check)
+    if decisive_ok is None:  # no contact-start/form-completion split for this metric: use the metric's own change
+        adj_t = target.data.get("channel_adjusted")
+        decisive_ok = bool(adj_t and adj_t["adj_p_value"] < 0.01 and (adj_t["adj_change_pp"] < 0) == (direction < 0))
+        decisive_desc = "A significant (p<0.01) within-channel change in the metric itself"
     hyps.append(_hyp("H3", "behavioral_change", f"Genuine change in user behaviour in {scope}",
                      "Users in the segment change what they do (e.g. fewer contact starts, more saves) across devices "
                      "and channels, with no rise in errors or tracking anomalies.",
@@ -335,7 +382,8 @@ def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Com
                       "User research or survey on why users save but do not contact",
                       "Competitor or seasonality data for the market"],
                      "associational", share=start_share,
-                     share_basis="Within-channel contacts lost through fewer contact starts as a share of all contacts lost."))
+                     share_basis="Within-channel contacts lost through fewer contact starts as a share of all contacts lost.",
+                     decisive_ok=decisive_ok, decisive_desc=decisive_desc))
 
     # ---------------- H4 instrumentation ----------------
     checks = []
@@ -390,14 +438,11 @@ def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Com
                                 result="contradicts" if obs >= mde else "supports", evidence_ids=_ids(power),
                                 detail=f"Observed {obs:.2f}pp vs MDE {mde:.2f}pp at {power.data['n_per_window']:,} "
                                        "sessions per window."))
-    k = 1
-    for d in fixed:
-        k *= len(DIMENSIONS[d])
-    if k > 1:
-        res = "contradicts" if p * k < 0.05 else "supports"
-        checks.append(Check(description=f"Does it survive correction for the {k} sibling segments one could have looked at?",
+    if m_comp > 1:
+        res = "contradicts" if p_corr < 0.05 else "supports"
+        checks.append(Check(description=f"Does it survive correction for the {m_comp} comparisons made or available?",
                             result=res, evidence_ids=_ids(target),
-                            detail=f"Bonferroni-adjusted p = {pval(min(1.0, p * k))} (p × {k})."))
+                            detail=f"Bonferroni-adjusted p = {pval(p_corr)} (p × {m_comp})."))
     if stability and stability.data:
         unusual = stability.data["unusual_baseline"]
         checks.append(Check(description="Was the baseline window itself unusual (regression to the mean)?",
@@ -412,9 +457,9 @@ def run_battery(ctx: ToolContext, metric: str, filters: Filters, comparison: Com
                       "Pooling with similar segments to increase sample size"],
                      "descriptive",
                      # A change indistinguishable from zero is, most parsimoniously, entirely noise.
-                     share=1.0 if p >= 0.05 else None,
-                     share_basis="The change is not distinguishable from zero (p ≥ 0.05), so noise can account for all of it."
-                     if p >= 0.05 else None))
+                     share=1.0 if p_corr >= 0.05 else None,
+                     share_basis="The change is not distinguishable from zero after correcting for the comparisons made "
+                                 "(adjusted p ≥ 0.05), so noise can account for all of it." if p_corr >= 0.05 else None))
 
     context = {"target": target, "steps": steps, "quality": quality, "focus_step": focus_step,
                "change_point": cp, "mixes": mixes, "power": power, "fixed": fixed}

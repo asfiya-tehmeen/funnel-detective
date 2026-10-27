@@ -10,14 +10,15 @@ from app.llm.base import LLMError
 class AnthropicProvider:
     name = "anthropic"
 
-    def __init__(self, api_key: str | None, model: str, timeout: float = 60.0):
+    def __init__(self, api_key: str | None, model: str, timeout: float = 60.0, client: Any | None = None):
+        """`client` lets tests inject an SDK client whose HTTP transport is mocked."""
         try:
             import anthropic
         except ImportError as exc:  # pragma: no cover - dependency is optional
             raise LLMError("anthropic package not installed") from exc
         self._anthropic = anthropic
         self.model = model
-        self._client = anthropic.Anthropic(api_key=api_key, timeout=timeout, max_retries=2)
+        self._client = client or anthropic.Anthropic(api_key=api_key, timeout=timeout, max_retries=2)
 
     def complete_json(self, system: str, user: str, schema: dict[str, Any], max_tokens: int = 4000) -> dict[str, Any]:
         a = self._anthropic
@@ -36,6 +37,10 @@ class AnthropicProvider:
             raise LLMError("LLM authentication failed (check ANTHROPIC_API_KEY)") from exc
         except a.RateLimitError as exc:
             raise LLMError("LLM rate limited") from exc
+        except a.BadRequestError as exc:
+            # The API's own message (e.g. which parameter or schema feature was rejected) is not secret and is
+            # what makes a live failure diagnosable.
+            raise LLMError(f"LLM request rejected (400): {str(getattr(exc, 'message', exc))[:300]}") from exc
         except a.APIStatusError as exc:
             raise LLMError(f"LLM API error {exc.status_code}") from exc
         except a.APIConnectionError as exc:

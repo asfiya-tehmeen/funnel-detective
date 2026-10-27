@@ -125,6 +125,49 @@ The MDE for a given n is solved numerically from the same formula. The experimen
 
 The narrative validator rejects causal language unless causal evidence is present.
 
+## Multiplicity and the credibility check
+
+An explanation presupposes a real change. Two things can make a "change" not real: it is just noise, or it was
+selected out of many comparable segments. `run_battery` therefore corrects the target change's p-value before any
+explanation can be *supported*:
+
+```
+m      = max(sibling segments implied by the filters, n_comparisons)
+p_corr = min(1, p · m)                      # Bonferroni
+```
+
+* **Sibling segments:** a market × device filter implies 5 × 3 = 15 comparable segments; a market × price band
+  filter implies 20.
+* **`n_comparisons`:** how many segments or steps the *workflow* examined to arrive at this one: the total size of a
+  scan (several hundred tests), 15 market × device cells per step for opportunity sizing, 5 for market priority.
+* If `p_corr ≥ 0.05`, a **contradicting check** ("Is the change itself credible after correcting for the number of
+  comparisons made?") is added to H1–H3. By the status rule a contradicting check blocks *supported*. H4 (tracking) is
+  exempt, because a tracking fault is an anomaly in the data itself, not in the target metric.
+* The random-variation hypothesis (H5) is credited with the *whole* change (explained share 1.0) only when
+  `p_corr ≥ 0.05`.
+
+This trades sensitivity for specificity. A real but weak effect can sit at the boundary and be reported as ambiguous
+rather than explained (one such case appears in the evaluation). The rule is a significance test, so its false-alarm
+rate is bounded but not zero.
+
+## Evaluating false alarms, not just recall
+
+`eval/evaluate.py` grades two things, because recall alone rewards an engine that says "supported" about everything:
+
+1. **Recall:** the planted scenarios A–E are found and explained correctly.
+2. **False alarms:**
+   * *Planted-world controls:* eight segments with no planted technical, tracking or behavioural effect (Cairo and
+     Abu Dhabi, by market and by market × device). A "supported" regression, instrumentation or behavioural claim is a
+     false alarm. Composition is allowed there, because scenario B's channel shift is real everywhere.
+   * *Null world:* a dataset generated with every planted effect off (`generate(scenarios=False)`). Release labels still
+     change on schedule, so a new client version appears with no real effect. Any non-noise explanation reported as
+     *supported* anywhere in 14 investigations (plus their related findings) is counted.
+
+**Protocol.** Seeds 1–8 were used while developing. Seeds 101–110 started as a held-out set but were partly inspected
+while diagnosing a bug, so they are no longer pristine. Seeds 201–210 were run once, after all code changes, and are the
+cleanest estimate. All of these come from one generator family, so more seeds measure sampling variability, not robustness
+to differently structured data.
+
 ## Known statistical limitations
 
 - Sessions are treated as independent; repeat visitors induce mild clustering.

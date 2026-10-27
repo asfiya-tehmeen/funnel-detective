@@ -51,6 +51,18 @@ All parameters are constants at the top of `app/data/generator.py`.
 | E | Genuine behaviour change | Dubai × luxury from 20 Jul, all devices and channels: contact starts × 0.55, saves × 1.4 | Behavioural change: intent drops while form completion is stable; broad-based; no technical signal |
 | — | EXP-014 | Sticky contact CTA, Dubai + Abu Dhabi, 25 May–21 Jun, 50/50 by user hash, true +7% relative on contact starts | Underpowered: positive point estimate, CI includes 0 |
 
+## The null world
+
+`generate(seed, scenarios=False)` builds a world with **no planted effects**: no paid-social surge, no Riyadh form
+regression, no ghost events in Jeddah, no Dubai luxury shift. Release and version labels still change on schedule, so a
+new client version appears with nothing wrong. The evaluation uses it to count false alarms (see the methodology doc).
+The default world is unchanged by this switch: when it was added, the regenerated default dataset's content was compared
+row for row with the previous one and matched. That was a one-off manual check, not an automated test.
+
+```bash
+python ../eval/evaluate.py --seeds 201-210       # planted-world recall + controls + null worlds, per seed
+```
+
 ## Assumptions
 
 - Rates are stylised. They aim at plausible orders of magnitude (≈10% listing→contact, ≈65% form completion)

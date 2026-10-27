@@ -43,3 +43,45 @@ def test_control_segment_not_called_a_regression(cur):
     regression = next(h for h in inv.hypotheses if h.category == "technical_regression")
     assert regression.status == "not_supported"
     _ = Filters
+
+
+def test_strong_change_is_never_led_by_random_variation(cur):
+    """Regression test: a variable-shadowing bug once let `random_variation` take explained_share=1.0 on a
+    change with p<0.001, outranking a supported technical regression."""
+    inv = investigate("Why did mobile contact conversion decline in Riyadh?", cur)
+    assert inv.finding.observed_change.p_value < 0.001
+    noise = next(h for h in inv.hypotheses if h.category == "random_variation")
+    assert noise.explained_share is None            # only credited with the change when it is not credible
+    assert inv.hypotheses[0].category == "technical_regression"
+
+
+def test_uncorrected_significant_change_among_many_comparisons_is_not_explained(cur):
+    """A p-value that does not survive correction for the segments examined must block 'supported'
+    explanations (it contradicts H1-H3) and let noise explain the change."""
+    from app.analytics.queries import Comparison, Filters
+    from app.engine.hypotheses import run_battery
+    from app.engine.tools import ToolContext
+    f = Filters(market=["Riyadh"], device=["mobile_web"])
+    hyps, _ = run_battery(ToolContext(cur=cur), "listing_to_contact", f, Comparison(), n_comparisons=10 ** 6)
+    by = {h.category: h for h in hyps}
+    assert all(by[c].status != "supported" for c in ("technical_regression", "traffic_composition", "behavioral_change"))
+    assert any("credible after correcting" in c.description for c in by["technical_regression"].checks)
+    assert by["random_variation"].explained_share == 1.0
+
+
+def test_behavioural_change_needs_its_decisive_check_to_be_supported():
+    """The non-specific checks ('no technical signal', 'broad-based') hold for almost any decline, so two of them
+    must not be enough for 'supported'. The decisive check must support it too."""
+    from app.engine.hypotheses import _hyp
+    from app.engine.schemas import Check
+    easy = [Check(description="broad-based", result="supports", detail="", evidence_ids=[]),
+            Check(description="no tech signal", result="supports", detail="", evidence_ids=[])]
+    capped = _hyp("H3", "behavioral_change", "t", "p", easy, ["x"], "associational", decisive_ok=False,
+                  decisive_desc="The contact-start change")
+    assert capped.status == "partially_supported"
+    assert any(c.description == "Decisive check" and "capped" in c.detail for c in capped.checks)
+    assert _hyp("H3", "behavioral_change", "t", "p", easy, ["x"], "associational", decisive_ok=True).status == "supported"
+    assert _hyp("H3", "behavioral_change", "t", "p", easy, ["x"], "associational").status == "supported"  # rule not applied
+    # Never lowers a status that was already below 'supported'.
+    one = [Check(description="a", result="supports", detail="", evidence_ids=[])]
+    assert _hyp("H3", "behavioral_change", "t", "p", one, ["x"], "associational", decisive_ok=False).status == "partially_supported"

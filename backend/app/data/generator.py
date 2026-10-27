@@ -93,6 +93,12 @@ MALFORMED_RATE = 0.002
 MISSING_SEARCH_RATE = 0.02
 
 
+# When False, none of the planted scenarios A-E is applied (a "null world" used to measure the
+# engine's false-alarm rate). Release/version labels still change on schedule, so a new client
+# version appears without any real effect. EXP-014 (a historical randomised test) is unaffected.
+_SCENARIOS = True
+
+
 @dataclass
 class _Ctx:
     rng: np.random.Generator
@@ -146,7 +152,7 @@ def _simulate_session(ctx: _Ctx, d: date) -> None:
     market = _choice(rng, MARKETS, [MARKET_WEIGHTS[m] for m in MARKETS])
 
     weights = dict(CHANNEL_WEIGHTS)
-    if d >= CHANGE_DATE:
+    if d >= CHANGE_DATE and _SCENARIOS:
         ramp = min(1.0, (d - CHANGE_DATE).days / 5 + 0.2)
         weights["paid_social"] *= 1 + (PAID_SOCIAL_SURGE - 1) * ramp
     total = sum(weights.values())
@@ -213,7 +219,7 @@ def _simulate_session(ctx: _Ctx, d: date) -> None:
     save_mult = 1.5 if visitor_type == "returning" else 1.0
 
     # Scenario E: Dubai luxury buyers start fewer contacts but save more (all devices/channels).
-    if market == "Dubai" and band == "luxury" and d >= CHANGE_DATE:
+    if market == "Dubai" and band == "luxury" and d >= CHANGE_DATE and _SCENARIOS:
         contact_mult *= E_START_MULT
         save_mult *= E_SAVE_MULT
     if variant == "treatment":
@@ -225,7 +231,7 @@ def _simulate_session(ctx: _Ctx, d: date) -> None:
 
     p_save_each = 1 - (1 - min(0.9, P_SAVE * save_mult)) ** (1 / n_listings)
 
-    ghost_bug = version == "app-5.12.0"
+    ghost_bug = version == "app-5.12.0" and _SCENARIOS
     contacted = False
     for _ in range(n_listings):
         current_listing = listing()
@@ -244,7 +250,7 @@ def _simulate_session(ctx: _Ctx, d: date) -> None:
                 _emit(ctx, base, ts + timedelta(milliseconds=300), "contact_submitted", listing_id=current_listing)
             step(35)
             p_submit = P_SUBMIT_GIVEN_START[device]
-            regressed = market == "Riyadh" and device == "mobile_web" and d >= CHANGE_DATE
+            regressed = market == "Riyadh" and device == "mobile_web" and d >= CHANGE_DATE and _SCENARIOS
             if regressed:
                 p_submit *= A_SUBMIT_MULT
             if rng.random() < p_submit:
@@ -274,7 +280,7 @@ def _daily_volume(rng: np.random.Generator, d: date) -> int:
     trend = 1 + 0.002 * (d - DATA_START).days
     weekday = {4: 1.12, 5: 1.08}.get(d.weekday(), 1.0)  # Fri/Sat a little busier
     paid_social_extra = 1.0
-    if d >= CHANGE_DATE:
+    if d >= CHANGE_DATE and _SCENARIOS:
         ramp = min(1.0, (d - CHANGE_DATE).days / 5 + 0.2)
         paid_social_extra = 1 + CHANNEL_WEIGHTS["paid_social"] * (PAID_SOCIAL_SURGE - 1) * ramp
     return int(rng.poisson(BASE_DAILY_SESSIONS * trend * weekday * paid_social_extra))
@@ -299,7 +305,17 @@ def _inject_duplicates_and_malformed(rng: np.random.Generator, df: pd.DataFrame)
     return out.sort_values(["event_ts", "event_id"], kind="mergesort").reset_index(drop=True)
 
 
-def generate(seed: int = SEED, end: date = DATA_END) -> pd.DataFrame:
+def generate(seed: int = SEED, end: date = DATA_END, scenarios: bool = True) -> pd.DataFrame:
+    """Simulate the dataset. `scenarios=False` builds a null world with no planted effects (A-E off)."""
+    global _SCENARIOS
+    previous, _SCENARIOS = _SCENARIOS, scenarios
+    try:
+        return _generate(seed, end)
+    finally:
+        _SCENARIOS = previous
+
+
+def _generate(seed: int, end: date) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     ctx = _Ctx(rng=rng, rows=[], user_pool={m: [] for m in MARKETS},
                counters={"event": 0, "user": 0, "session": 0, "lead": 0})

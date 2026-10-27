@@ -1,15 +1,15 @@
-seed 101: 7/7 explained, controls ok
-seed 102: 7/7 explained, controls ok
-seed 103: 7/7 explained, controls ok
-seed 104: 7/7 explained, controls ok
-seed 105: 7/7 explained, controls ok
-seed 106: 7/7 explained, controls ok
-seed 107: 7/7 explained, controls ok
-seed 108: 7/7 explained, controls ok
-seed 109: 7/7 explained, controls ok
-seed 110: 6/7 explained, controls ok
+seed 101: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 102: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 103: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 104: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 1 false alarms in 18 findings {'behavioral_change': 1}
+seed 105: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 106: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 107: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 108: 7/7 explained, controls 7/8 clean (1 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 109: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 110: 6/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 1 false alarms in 17 findings {'behavioral_change': 1}
 
-Per-scenario success across 10 seeds
+Recall per scenario across 10 seeds
   A_mobile_contact_regression                   10/10
   A_mobile_contact_regression (unprompted)      10/10
   B_channel_mix_shift                           10/10
@@ -17,4 +17,8 @@ Per-scenario success across 10 seeds
   D_jeddah_app_tracking (unprompted)            10/10
   E_dubai_luxury_behaviour                      10/10
   E_dubai_luxury_behaviour (unprompted)         9/10
-  negative controls without false alarms        10/10
+  planted-world controls without false alarm    79/80
+  (info) controls leading with a partial claim  1/80
+  null worlds with zero false alarms            8/10
+  null-world false alarms by category           {'behavioral_change': 2}
+  null-world confident (medium/high) wrong leads 2

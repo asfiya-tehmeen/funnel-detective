@@ -1,13 +1,13 @@
-seed 1: 7/7 explained, controls ok
-seed 2: 7/7 explained, controls ok
-seed 3: 7/7 explained, controls ok
-seed 4: 7/7 explained, controls ok
-seed 5: 6/7 explained, controls ok
-seed 6: 6/7 explained, controls ok
-seed 7: 7/7 explained, controls ok
-seed 8: 7/7 explained, controls ok
+seed 1: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 2: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 16 findings
+seed 3: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 4: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 5: 6/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 18 findings
+seed 6: 6/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 20 findings
+seed 7: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 8: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 1 false alarms in 17 findings {'behavioral_change': 1}
 
-Per-scenario success across 8 seeds
+Recall per scenario across 8 seeds
   A_mobile_contact_regression                   8/8
   A_mobile_contact_regression (unprompted)      8/8
   B_channel_mix_shift                           8/8
@@ -15,4 +15,8 @@ Per-scenario success across 8 seeds
   D_jeddah_app_tracking (unprompted)            8/8
   E_dubai_luxury_behaviour                      8/8
   E_dubai_luxury_behaviour (unprompted)         6/8
-  negative controls without false alarms        8/8
+  planted-world controls without false alarm    64/64
+  (info) controls leading with a partial claim  0/64
+  null worlds with zero false alarms            7/8
+  null-world false alarms by category           {'behavioral_change': 1}
+  null-world confident (medium/high) wrong leads 1

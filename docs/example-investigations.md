@@ -60,7 +60,8 @@ Key checks for the lead explanation:
   within-channel.
 - At market level, **composition (~63%) and regression (~32%) are both supported**, and the finding says so.
   The experiment is targeted where the regression concentrates.
-- Dubai and Jeddah were also examined; at market level both look like traffic composition.
+- Dubai (supported) and Jeddah (partially supported) were also examined; at market level both look like traffic
+  composition.
 
 ### 5. "Are users abandoning the contact flow, or is tracking broken?"
 
@@ -91,7 +92,10 @@ The workflow starts from the data-quality warnings and finds **both patterns, in
   - broad-based across 3 of 3 devices and 5 of 6 channels;
   - no technical or tracking signal;
   - save rate up +5.7pp.
-- Riyadh × mobile web is reported as a related finding (regression).
+- Related findings: Riyadh × mobile web (technical regression, supported); property type townhouse × luxury
+  (behavioural, supported — a subset of the planted Dubai luxury effect across markets); and Abu Dhabi × mobile web,
+  which came from the scan's watchlist and is only *partially supported* behavioural. That last one is not a planted
+  effect, so it is the engine hedging correctly: it did not call it supported.
 - Watchlist items that were checked are labelled as not significant after FDR correction.
 - **Experiment:** a low-commitment contact option, 1,222 per arm, 56 days.
 

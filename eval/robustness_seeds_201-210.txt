@@ -1,0 +1,24 @@
+seed 201: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 18 findings
+seed 202: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 203: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 204: 6/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 18 findings
+seed 205: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 206: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 19 findings
+seed 207: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 208: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 17 findings
+seed 209: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 19 findings
+seed 210: 7/7 explained, controls 8/8 clean (0 lead with a partial non-noise claim) | null world: 0 false alarms in 16 findings
+
+Recall per scenario across 10 seeds
+  A_mobile_contact_regression                   10/10
+  A_mobile_contact_regression (unprompted)      9/10
+  B_channel_mix_shift                           10/10
+  C_app_selection_effect                        10/10
+  D_jeddah_app_tracking (unprompted)            10/10
+  E_dubai_luxury_behaviour                      10/10
+  E_dubai_luxury_behaviour (unprompted)         10/10
+  planted-world controls without false alarm    80/80
+  (info) controls leading with a partial claim  0/80
+  null worlds with zero false alarms            10/10
+  null-world false alarms by category           none
+  null-world confident (medium/high) wrong leads 0

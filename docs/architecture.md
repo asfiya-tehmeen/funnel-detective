@@ -61,7 +61,8 @@
    - **scan:** FDR-flagged segments, then watchlist items, each localised to its concentrated sub-segment;
    - **segment advantage:** standardisation over confounders.
 3. **Battery.** The focus segment and metric always go through all five explanations. Each check records the
-   evidence IDs it used.
+   evidence IDs it used. The workflow passes `n_comparisons` (how many segments it examined to pick this one), and the
+   change's p-value is corrected for it before any explanation can be *supported* (see the methodology doc).
 4. **Finding.** Leading hypothesis by status and share of the change explained; rule-based confidence;
    limitations; next analyses.
 5. **Experiment.** A template chosen by the leading category, sized from the segment's current rate and

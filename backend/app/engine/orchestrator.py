@@ -83,7 +83,7 @@ def llm_plan(provider: LLMProvider, question: str) -> tuple[InvestigationPlan, l
         "dimensions": DIMENSIONS,
         "tools": catalog,
     })
-    raw = provider.complete_json(PLANNER_SYSTEM, user, _plan_schema(), max_tokens=2000)
+    raw = provider.complete_json(PLANNER_SYSTEM, user, _plan_schema(), max_tokens=6000)
     notes = []
     steps = []
     for s in raw.get("extra_steps", [])[:3]:
@@ -245,7 +245,9 @@ Rules (violations cause your answer to be discarded):
 def llm_narrative(provider: LLMProvider, finding: Finding, hyps: list[Hypothesis], evidence: list,
                   related: list[dict[str, Any]]) -> tuple[Narrative | None, list[str]]:
     payload = {
-        "finding": finding.model_dump(mode="json", exclude={"confidence_basis"}),
+        # The user's free-text question is deliberately NOT sent: the narrator only needs verified results, and
+        # leaving it out removes a prompt-injection path into the generated prose.
+        "finding": finding.model_dump(mode="json", exclude={"confidence_basis", "business_question"}),
         "hypotheses": [{"id": h.id, "category": h.category, "title": h.title, "status": h.status,
                         "checks": [{"description": c.description, "result": c.result, "detail": c.detail,
                                     "evidence_ids": c.evidence_ids} for c in h.checks]} for h in rank(hyps)],
@@ -260,14 +262,14 @@ def llm_narrative(provider: LLMProvider, finding: Finding, hyps: list[Hypothesis
             "key_points": {"type": "array", "items": {
                 "type": "object",
                 "properties": {"text": {"type": "string"}, "evidence_ids": {"type": "array", "items": {"type": "string"}},
-                               "hypothesis_id": {"type": ["string", "null"]},
+                               "hypothesis_id": {"anyOf": [{"type": "string"}, {"type": "null"}]},
                                "stance": {"type": "string", "enum": ["supports", "contradicts", "context"]}},
                 "required": ["text", "evidence_ids", "hypothesis_id", "stance"], "additionalProperties": False}},
             "caveats": {"type": "array", "items": {"type": "string"}},
         },
         "required": ["summary", "key_points", "caveats"], "additionalProperties": False,
     }
-    raw = provider.complete_json(NARRATOR_SYSTEM, json.dumps(payload, default=str), schema, max_tokens=3000)
+    raw = provider.complete_json(NARRATOR_SYSTEM, json.dumps(payload, default=str), schema, max_tokens=8000)
     draft, issues = validate_narrative(raw, evidence, hyps,
                                        extra_texts=[json.dumps(finding.observed_change.model_dump(), default=str)])
     if draft is None:
@@ -330,7 +332,8 @@ def _localize(ctx: ToolContext, metric: str, f: Filters, comparison: Comparison,
 
 
 def _scan_focus(ctx: ToolContext, metrics: list[str], filters: Filters, comparison: Comparison,
-                limit: int = 3, watchlist: int = 0, notes: list[str] | None = None) -> list[tuple[str, Filters, float]]:
+                limit: int = 3, watchlist: int = 0, notes: list[str] | None = None,
+                tally: list[int] | None = None) -> list[tuple[str, Filters, float]]:
     """Segments to investigate: FDR-flagged first (by impact), then up to `watchlist` watchlist items (by p).
 
     Watchlist items are not significant after correction; they are investigated because the hypothesis
@@ -343,6 +346,8 @@ def _scan_focus(ctx: ToolContext, metrics: list[str], filters: Filters, comparis
         res = run_tool(ctx, "segment_scan", {"metric": m, "filters": filters, "comparison": comparison})
         if not res:
             continue
+        if tally is not None:
+            tally.append(int(res.data["n_tests"]))
         for r in res.data["flagged"] + res.data["positive"]:
             cands.append((m, filters.merged(**{k: [v] for k, v in r["segment"].items()}), r["scan_impact_sessions"]))
         for r in res.data["watchlist"]:
@@ -426,6 +431,9 @@ def investigate(question: str, cur, comparison: Comparison | None = None, ui_fil
     extras: dict[str, Any] = {}
     scope_from_scan = False
     experiment_req: PlanRequest | None = None
+    # How many comparable segments/steps were examined to select the focus (for multiplicity correction).
+    n_comp = 1
+    scan_tally: list[int] = []
 
     if plan.intent == "segment_advantage":
         group_dim, group_val = next(((d, v[0]) for d, v in filters.active().items() if len(v) == 1), (None, None))
@@ -472,6 +480,7 @@ def investigate(question: str, cur, comparison: Comparison | None = None, ui_fil
             opp = run_tool(ctx, "opportunity_sizing", {"filters": filters, "comparison": comparison})
             if opp and opp.data["steps"]:
                 top = opp.data["steps"][0]
+                n_comp = 15 * max(1, len(opp.data["steps"]))  # market x device cells per funnel step
                 focus_metric = top["metric"]
                 cell = top["largest_decline_cell"]
                 focus_filters = filters.merged(market=[cell["market"]], device=[cell["device"]])
@@ -484,17 +493,18 @@ def investigate(question: str, cur, comparison: Comparison | None = None, ui_fil
                     if other["sessions_lost_vs_baseline"] <= 0 or (oc.get("adj_p_value") or 1) >= 0.05:
                         continue
                     of = filters.merged(market=[oc["market"]], device=[oc["device"]])
-                    rh, rc = run_battery(ctx, other["metric"], of, comparison)
+                    rh, rc = run_battery(ctx, other["metric"], of, comparison, n_comparisons=n_comp)
                     related.append(_related_summary(of, other["metric"], rh, rc["target"]))
         elif plan.intent == "prioritize_markets":
             mp = run_tool(ctx, "market_priority", {"metric": metric, "filters": filters, "comparison": comparison})
             if mp and mp.data["rows"]:
+                n_comp = len(mp.data["rows"])
                 top = mp.data["rows"][0]
                 focus_filters = filters.merged(market=[top["market"]])
                 notes.append(f"Highest-priority market by within-channel loss: {top['market']}.")
                 for r in mp.data["rows"][1:3]:
                     rf = filters.merged(market=[r["market"]])
-                    rh, rc = run_battery(ctx, metric, rf, comparison)
+                    rh, rc = run_battery(ctx, metric, rf, comparison, n_comparisons=n_comp)
                     related.append(_related_summary(rf, metric, rh, rc["target"]))
         elif plan.intent in ("abandon_vs_tracking", "scan_changes"):
             if plan.intent == "abandon_vs_tracking" and not filters.active():
@@ -503,27 +513,34 @@ def investigate(question: str, cur, comparison: Comparison | None = None, ui_fil
                 segs = [w for w in warns if w.get("segment") and w["severity"] == "high"]
                 extras["quality_warnings"] = warns
                 if segs:
+                    n_comp = 15  # warnings are computed per market x device cell
                     kind_metric = {"tracking": "listing_to_contact_raw", "failed_submit": "contact_start_to_submit"}
                     cands = [(kind_metric.get(w.get("kind"), metric),
                               filters.merged(**{k: [v] for k, v in w["segment"].items()}), 0.0) for w in segs]
                     notes.append("Segments with tracking-quality warnings were investigated first: "
                                  + "; ".join(f"{seg_label(w['segment'])} ({w['title']})" for w in segs[:3]) + ".")
                 else:
-                    cands = _scan_focus(ctx, ["contact_start_to_submit", "listing_to_contact_raw"], filters, comparison)
+                    cands = _scan_focus(ctx, ["contact_start_to_submit", "listing_to_contact_raw"], filters, comparison,
+                                        tally=scan_tally)
             elif plan.intent == "scan_changes":
                 cands = _scan_focus(ctx, ["listing_to_contact_start", "contact_start_to_submit", "contact_to_viewing",
-                                          "listing_to_contact"], filters, comparison, limit=4, watchlist=2, notes=notes)
+                                          "listing_to_contact"], filters, comparison, limit=4, watchlist=2, notes=notes,
+                                    tally=scan_tally)
                 scope_from_scan = True
             else:
                 cands = [(metric, filters, 0.0)]
+            if scan_tally:
+                n_comp = max(n_comp, sum(scan_tally))
             if cands:
                 focus_metric, focus_filters, _ = cands[0]
                 for m2, f2, _ in cands[1:4]:
-                    rh, rc = run_battery(ctx, m2, f2, comparison)
+                    rh, rc = run_battery(ctx, m2, f2, comparison, n_comparisons=n_comp)
                     related.append(_related_summary(f2, m2, rh, rc["target"]))
             else:
                 notes.append("No segment passed the scan's FDR threshold; investigating the requested scope instead.")
-        hyps, bctx = run_battery(ctx, focus_metric, focus_filters, comparison)
+        if scan_tally:
+            n_comp = max(n_comp, sum(scan_tally))
+        hyps, bctx = run_battery(ctx, focus_metric, focus_filters, comparison, n_comparisons=n_comp)
         target = bctx["target"]
         observed = _observed(target.data, focus_metric)
         metric, filters = focus_metric, focus_filters
